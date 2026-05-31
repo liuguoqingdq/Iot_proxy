@@ -1,0 +1,43 @@
+file(REMOVE_RECURSE
+  "CMakeFiles/iota_proxy.dir/src/ProxyRuntime.cpp.o"
+  "CMakeFiles/iota_proxy.dir/src/ProxyRuntime.cpp.o.d"
+  "CMakeFiles/iota_proxy.dir/src/admission/AdmissionControl.cpp.o"
+  "CMakeFiles/iota_proxy.dir/src/admission/AdmissionControl.cpp.o.d"
+  "CMakeFiles/iota_proxy.dir/src/app/main.cpp.o"
+  "CMakeFiles/iota_proxy.dir/src/app/main.cpp.o.d"
+  "CMakeFiles/iota_proxy.dir/src/business/EdgeDataMessage.cpp.o"
+  "CMakeFiles/iota_proxy.dir/src/business/EdgeDataMessage.cpp.o.d"
+  "CMakeFiles/iota_proxy.dir/src/business/EdgeDataPipeline.cpp.o"
+  "CMakeFiles/iota_proxy.dir/src/business/EdgeDataPipeline.cpp.o.d"
+  "CMakeFiles/iota_proxy.dir/src/business/KafkaSink.cpp.o"
+  "CMakeFiles/iota_proxy.dir/src/business/KafkaSink.cpp.o.d"
+  "CMakeFiles/iota_proxy.dir/src/business/NodeIdentity.cpp.o"
+  "CMakeFiles/iota_proxy.dir/src/business/NodeIdentity.cpp.o.d"
+  "CMakeFiles/iota_proxy.dir/src/business/PassThroughBusiness.cpp.o"
+  "CMakeFiles/iota_proxy.dir/src/business/PassThroughBusiness.cpp.o.d"
+  "CMakeFiles/iota_proxy.dir/src/business/RedisStateCache.cpp.o"
+  "CMakeFiles/iota_proxy.dir/src/business/RedisStateCache.cpp.o.d"
+  "CMakeFiles/iota_proxy.dir/src/common/Endpoint.cpp.o"
+  "CMakeFiles/iota_proxy.dir/src/common/Endpoint.cpp.o.d"
+  "CMakeFiles/iota_proxy.dir/src/discovery/DiscoveryService.cpp.o"
+  "CMakeFiles/iota_proxy.dir/src/discovery/DiscoveryService.cpp.o.d"
+  "CMakeFiles/iota_proxy.dir/src/discovery/RouteManager.cpp.o"
+  "CMakeFiles/iota_proxy.dir/src/discovery/RouteManager.cpp.o.d"
+  "CMakeFiles/iota_proxy.dir/src/frame/EdgeDataFrame.cpp.o"
+  "CMakeFiles/iota_proxy.dir/src/frame/EdgeDataFrame.cpp.o.d"
+  "CMakeFiles/iota_proxy.dir/src/frame/TunnelFrame.cpp.o"
+  "CMakeFiles/iota_proxy.dir/src/frame/TunnelFrame.cpp.o.d"
+  "CMakeFiles/iota_proxy.dir/src/kcp/KcpTunnel.cpp.o"
+  "CMakeFiles/iota_proxy.dir/src/kcp/KcpTunnel.cpp.o.d"
+  "CMakeFiles/iota_proxy.dir/src/network/TcpEgress.cpp.o"
+  "CMakeFiles/iota_proxy.dir/src/network/TcpEgress.cpp.o.d"
+  "CMakeFiles/iota_proxy.dir/src/network/TcpIngress.cpp.o"
+  "CMakeFiles/iota_proxy.dir/src/network/TcpIngress.cpp.o.d"
+  "iota_proxy"
+  "iota_proxy.pdb"
+)
+
+# Per-language clean rules from dependency scanning.
+foreach(lang CXX)
+  include(CMakeFiles/iota_proxy.dir/cmake_clean_${lang}.cmake OPTIONAL)
+endforeach()

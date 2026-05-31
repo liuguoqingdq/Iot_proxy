@@ -1,0 +1,6 @@
+/home/liuguoqing/Iota/iota_proxy/build/CMakeFiles/iota_proxy.dir
+/home/liuguoqing/Iota/iota_proxy/build/CMakeFiles/edit_cache.dir
+/home/liuguoqing/Iota/iota_proxy/build/CMakeFiles/rebuild_cache.dir
+/home/liuguoqing/Iota/iota_proxy/build/myring-build/CMakeFiles/myring.dir
+/home/liuguoqing/Iota/iota_proxy/build/myring-build/CMakeFiles/edit_cache.dir
+/home/liuguoqing/Iota/iota_proxy/build/myring-build/CMakeFiles/rebuild_cache.dir

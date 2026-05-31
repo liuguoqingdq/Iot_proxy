@@ -1,0 +1,3 @@
+/home/liuguoqing/Iota/myring/build/CMakeFiles/myring.dir
+/home/liuguoqing/Iota/myring/build/CMakeFiles/edit_cache.dir
+/home/liuguoqing/Iota/myring/build/CMakeFiles/rebuild_cache.dir

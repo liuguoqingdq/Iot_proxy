@@ -1,0 +1,11 @@
+{
+  "schema": "${schema}",
+  "ingress_protocol": "${ingress_protocol}",
+  "topic": "${topic}",
+  "clientid": "${clientid}",
+  "username": "${username}",
+  "qos": ${qos},
+  "timestamp": ${timestamp},
+  "mqtt_message_id": "${mqtt_message_id}",
+  "payload_base64": "${payload_base64}"
+}

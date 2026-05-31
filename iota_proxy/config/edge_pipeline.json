@@ -1,0 +1,11 @@
+{
+  "redis-host": "127.0.0.1",
+  "redis-port": 6379,
+  "redis-state-ttl-seconds": 60,
+  "redis-latest-ttl-seconds": 86400,
+  "redis-seen-ttl-seconds": 600,
+  "kafka-brokers": "127.0.0.1:9092",
+  "kafka-topic": "iota.edge.raw.v1",
+  "kafka-client-id": "iota-proxy",
+  "kafka-acks": "all"
+}
