@@ -468,7 +468,7 @@ Iceberg namespace/table
 ```
 
 ---
-[Usage.md]
+## [[Usage.md]]
 
 -----
 
@@ -812,3 +812,6 @@ Possible extension directions include:
 ### Project Positioning
 
 `Iot_proxy` is a distributed IoT data collection foundation rather than a single-purpose analytics application. It focuses on device ingestion, decentralized node discovery, KCP-based peer networking, Kafka-based data pipelines, HDFS/Iceberg persistence, and extensibility for custom services.
+
+-----
+## [[Usage.md]]
