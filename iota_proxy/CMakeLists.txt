@@ -23,6 +23,7 @@ add_executable(iota_proxy
   src/admission/AdmissionControl.cpp
   src/business/EdgeDataMessage.cpp
   src/business/EdgeDataPipeline.cpp
+  src/business/KafkaBroadcastSource.cpp
   src/business/KafkaSink.cpp
   src/business/NodeIdentity.cpp
   src/business/PassThroughBusiness.cpp

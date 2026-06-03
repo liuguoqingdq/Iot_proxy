@@ -15,7 +15,8 @@ enum class TunnelFrameType : std::uint8_t {
     Close = 3,
     Control = 4,
     Finish = 5,
-    Replicate = 6
+    Replicate = 6,
+    KafkaBroadcast = 7
 };
 
 struct BroadcastMetadata {

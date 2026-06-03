@@ -4,6 +4,7 @@
 #include "iota_proxy/admission/AdmissionControl.hpp"
 #include "iota_proxy/business/BusinessLayer.hpp"
 #include "iota_proxy/business/EdgeDataPipeline.hpp"
+#include "iota_proxy/business/KafkaBroadcastSource.hpp"
 #include "iota_proxy/discovery/DiscoveryService.hpp"
 #include "iota_proxy/kcp/KcpTunnel.hpp"
 #include "iota_proxy/network/TcpEgress.hpp"
@@ -16,6 +17,7 @@ struct ProxyRuntimeConfig {
     TcpIngressConfig tcp;
     TcpEgressConfig egress;
     EdgeDataPipelineConfig edge_data;
+    KafkaBroadcastSourceConfig kafka_broadcast;
     KcpTunnelConfig kcp;
     DiscoveryConfig discovery;
 };
@@ -36,6 +38,7 @@ private:
     TcpIngress tcp_;
     TcpEgress egress_;
     EdgeDataPipeline edge_data_;
+    KafkaBroadcastSource kafka_broadcast_;
     KcpTunnel kcp_;
     DiscoveryService discovery_;
     PassThroughBusiness business_;

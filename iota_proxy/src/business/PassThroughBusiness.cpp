@@ -173,6 +173,8 @@ void PassThroughBusiness::on_kcp_frame(const TunnelFrameView& frame) {
                 }
             }
             break;
+        case TunnelFrameType::KafkaBroadcast:
+            break;
     }
 }
 

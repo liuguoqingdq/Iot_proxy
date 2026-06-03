@@ -58,16 +58,16 @@ EMQX
   v
 Kafka topic: iota.edge.raw.v1
   |
-  +------------------------------+
-  |                              |
-  v                              v
-business_service                 storage_service
-  |                              |
-  | upsert device state           | micro-batch write
-  v                              v
-MySQL: proxy_served_device       HDFS Parquet files
-                                 +
-                                 Iceberg table metadata
+  +------------------------------+------------------------------+
+  |                              |                              |
+  v                              v                              v
+iota_proxy                      business_service               storage_service
+Kafka broadcast source           |                              |
+  |                              | upsert device state           | micro-batch write
+  v                              v                              v
+KCP peer network                 MySQL: proxy_served_device     HDFS Parquet files
+                                                                +
+                                                                Iceberg table metadata
 ```
 
 `iota_proxy`作为服务器间代理网络节点，主要承担以下职责：
@@ -258,9 +258,26 @@ iota_proxy/config/edge_pipeline.json
   "kafka-brokers": "127.0.0.1:9092",
   "kafka-topic": "iota.edge.raw.v1",
   "kafka-client-id": "iota-proxy",
-  "kafka-acks": "all"
+  "kafka-acks": "all",
+  "kafka-broadcast-enabled": true,
+  "kafka-broadcast-group-id": "iota-proxy-kcp-broadcast",
+  "kafka-broadcast-client-id": "iota-proxy-kcp-broadcast",
+  "kafka-broadcast-auto-offset-reset": "latest",
+  "kafka-broadcast-poll-timeout-ms": 1000
 }
 ```
+
+如果 MQTT 数据已经由 EMQX 直接写入 Kafka，`iota_proxy` 可以启用 Kafka 到 KCP 的广播源：
+
+```json
+{
+  "kafka-broadcast-enabled": true,
+  "kafka-broadcast-group-id": "iota-proxy-kcp-broadcast",
+  "kafka-broadcast-auto-offset-reset": "latest"
+}
+```
+
+该路径只在 `iota_proxy` 内消费 Kafka 并调用 KCP broadcast，不经过 `business_service`。广播 payload 是 Kafka value 原文。
 
 #### Go业务服务配置
 
@@ -525,16 +542,16 @@ EMQX
   v
 Kafka topic: iota.edge.raw.v1
   |
-  +------------------------------+
-  |                              |
-  v                              v
-business_service                 storage_service
-  |                              |
-  | upsert device state           | micro-batch write
-  v                              v
-MySQL: proxy_served_device       HDFS Parquet files
-                                 +
-                                 Iceberg table metadata
+  +------------------------------+------------------------------+
+  |                              |                              |
+  v                              v                              v
+iota_proxy                      business_service               storage_service
+Kafka broadcast source           |                              |
+  |                              | upsert device state           | micro-batch write
+  v                              v                              v
+KCP peer network                 MySQL: proxy_served_device     HDFS Parquet files
+                                                                +
+                                                                Iceberg table metadata
 ```
 
 `iota_proxy` acts as the inter-server proxy network node and is responsible for:
@@ -700,6 +717,18 @@ C++ proxy node config:
 ```text
 iota_proxy/config/edge_pipeline.json
 ```
+
+When MQTT data is already written to Kafka by EMQX, `iota_proxy` can consume Kafka and broadcast the original Kafka value through KCP:
+
+```json
+{
+  "kafka-broadcast-enabled": true,
+  "kafka-broadcast-group-id": "iota-proxy-kcp-broadcast",
+  "kafka-broadcast-auto-offset-reset": "latest"
+}
+```
+
+This path stays inside `iota_proxy` and does not use `business_service`.
 
 Go business service config:
 

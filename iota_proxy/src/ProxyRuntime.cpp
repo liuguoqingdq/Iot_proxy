@@ -29,6 +29,7 @@ ProxyRuntime::ProxyRuntime(const ProxyRuntimeConfig& config)
       tcp_(config.tcp),
       egress_(config.egress),
       edge_data_(config.edge_data),
+      kafka_broadcast_(config.kafka_broadcast),
       kcp_(config.kcp),
       discovery_(config.discovery),
       business_() {
@@ -157,6 +158,14 @@ ProxyRuntime::ProxyRuntime(const ProxyRuntimeConfig& config)
             return admission_.can_accept_kcp_link(kcp_.peer_link_count());
         }
     );
+    kafka_broadcast_.set_sender(
+        [this](ByteView payload) {
+            return kcp_.broadcast_frame(
+                TunnelFrameType::KafkaBroadcast,
+                1,
+                payload);
+        }
+    );
 }
 
 ProxyRuntime::~ProxyRuntime() {
@@ -173,9 +182,16 @@ bool ProxyRuntime::start() {
         return false;
     }
 
+    if (!kafka_broadcast_.start()) {
+        discovery_.stop();
+        kcp_.stop();
+        return false;
+    }
+
     try {
         tcp_.start();
     } catch (...) {
+        kafka_broadcast_.stop();
         discovery_.stop();
         kcp_.stop();
         throw;
@@ -187,6 +203,7 @@ bool ProxyRuntime::start() {
 void ProxyRuntime::stop() {
     tcp_.stop();
     egress_.stop();
+    kafka_broadcast_.stop();
     edge_data_.stop();
     discovery_.stop();
     kcp_.stop();

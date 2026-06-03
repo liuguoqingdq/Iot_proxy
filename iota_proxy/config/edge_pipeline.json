@@ -7,5 +7,10 @@
   "kafka-brokers": "127.0.0.1:9092",
   "kafka-topic": "iota.edge.raw.v1",
   "kafka-client-id": "iota-proxy",
-  "kafka-acks": "all"
+  "kafka-acks": "all",
+  "kafka-broadcast-enabled": true,
+  "kafka-broadcast-group-id": "iota-proxy-kcp-broadcast",
+  "kafka-broadcast-client-id": "iota-proxy-kcp-broadcast",
+  "kafka-broadcast-auto-offset-reset": "latest",
+  "kafka-broadcast-poll-timeout-ms": 1000
 }

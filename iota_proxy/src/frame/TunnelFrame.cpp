@@ -57,7 +57,9 @@ bool valid_type(std::uint8_t value) noexcept {
            value == static_cast<std::uint8_t>(TunnelFrameType::Close) ||
            value == static_cast<std::uint8_t>(TunnelFrameType::Control) ||
            value == static_cast<std::uint8_t>(TunnelFrameType::Finish) ||
-           value == static_cast<std::uint8_t>(TunnelFrameType::Replicate);
+           value == static_cast<std::uint8_t>(TunnelFrameType::Replicate) ||
+           value == static_cast<std::uint8_t>(
+               TunnelFrameType::KafkaBroadcast);
 }
 
 }  // namespace
@@ -137,6 +139,8 @@ const char* tunnel_frame_type_name(TunnelFrameType type) noexcept {
             return "finish";
         case TunnelFrameType::Replicate:
             return "replicate";
+        case TunnelFrameType::KafkaBroadcast:
+            return "kafka_broadcast";
         default:
             return "unknown";
     }

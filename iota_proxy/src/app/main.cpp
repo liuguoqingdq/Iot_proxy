@@ -49,6 +49,11 @@ void print_usage(const char* program) {
         << "  --kafka-topic <name>     Kafka topic for edge data\n"
         << "  --kafka-client-id <id>   default iota-proxy\n"
         << "  --kafka-acks <value>     default all\n"
+        << "  --enable-kafka-broadcast consume Kafka and broadcast over KCP\n"
+        << "  --kafka-broadcast-group-id <id> default iota-proxy-kcp-broadcast\n"
+        << "  --kafka-broadcast-client-id <id> default iota-proxy-kcp-broadcast\n"
+        << "  --kafka-broadcast-auto-offset-reset <latest|earliest> default latest\n"
+        << "  --kafka-broadcast-poll-timeout-ms <ms> default 1000\n"
         << "  --kcp-host <ip>          default 0.0.0.0\n"
         << "  --kcp-port <port>        default 9000\n"
         << "  --kcp-peer-host <ip>     optional static peer host\n"
@@ -445,6 +450,83 @@ bool load_redis_config_json(const std::string& path,
                 kafka_acks->get<std::string>();
         }
 
+        const nlohmann::json* kafka_broadcast_enabled =
+            redis_config_value(doc, "kafka-broadcast-enabled", nullptr);
+        if (kafka_broadcast_enabled != nullptr) {
+            if (!kafka_broadcast_enabled->is_boolean()) {
+                if (error != nullptr) {
+                    *error = "kafka-broadcast-enabled must be a boolean";
+                }
+                return false;
+            }
+            config->kafka_broadcast.enabled =
+                kafka_broadcast_enabled->get<bool>();
+        }
+
+        const nlohmann::json* kafka_broadcast_group_id =
+            redis_config_value(doc, "kafka-broadcast-group-id", nullptr);
+        if (kafka_broadcast_group_id != nullptr) {
+            if (!kafka_broadcast_group_id->is_string()) {
+                if (error != nullptr) {
+                    *error = "kafka-broadcast-group-id must be a string";
+                }
+                return false;
+            }
+            config->kafka_broadcast.group_id =
+                kafka_broadcast_group_id->get<std::string>();
+        }
+
+        const nlohmann::json* kafka_broadcast_client_id =
+            redis_config_value(doc, "kafka-broadcast-client-id", nullptr);
+        if (kafka_broadcast_client_id != nullptr) {
+            if (!kafka_broadcast_client_id->is_string()) {
+                if (error != nullptr) {
+                    *error = "kafka-broadcast-client-id must be a string";
+                }
+                return false;
+            }
+            config->kafka_broadcast.client_id =
+                kafka_broadcast_client_id->get<std::string>();
+        }
+
+        const nlohmann::json* kafka_broadcast_auto_offset_reset =
+            redis_config_value(
+                doc,
+                "kafka-broadcast-auto-offset-reset",
+                nullptr);
+        if (kafka_broadcast_auto_offset_reset != nullptr) {
+            if (!kafka_broadcast_auto_offset_reset->is_string()) {
+                if (error != nullptr) {
+                    *error =
+                        "kafka-broadcast-auto-offset-reset must be a string";
+                }
+                return false;
+            }
+            config->kafka_broadcast.auto_offset_reset =
+                kafka_broadcast_auto_offset_reset->get<std::string>();
+        }
+
+        const nlohmann::json* kafka_broadcast_poll_timeout =
+            redis_config_value(
+                doc,
+                "kafka-broadcast-poll-timeout-ms",
+                nullptr);
+        if (kafka_broadcast_poll_timeout != nullptr) {
+            std::string text;
+            std::uint32_t parsed = 0;
+            if (!json_scalar_to_string(
+                    *kafka_broadcast_poll_timeout,
+                    &text) ||
+                !parse_u32(text, &parsed)) {
+                if (error != nullptr) {
+                    *error =
+                        "kafka-broadcast-poll-timeout-ms must be a positive uint32";
+                }
+                return false;
+            }
+            config->kafka_broadcast.poll_timeout_ms = parsed;
+        }
+
         return true;
     } catch (const std::exception& ex) {
         if (error != nullptr) {
@@ -593,6 +675,30 @@ bool parse_args(int argc,
                 return false;
             }
             config->edge_data.kafka.acks = value;
+        } else if (arg == "--enable-kafka-broadcast") {
+            config->kafka_broadcast.enabled = true;
+        } else if (arg == "--kafka-broadcast-group-id") {
+            if (!require_value(argc, argv, &i, &value) || value.empty()) {
+                return false;
+            }
+            config->kafka_broadcast.group_id = value;
+        } else if (arg == "--kafka-broadcast-client-id") {
+            if (!require_value(argc, argv, &i, &value) || value.empty()) {
+                return false;
+            }
+            config->kafka_broadcast.client_id = value;
+        } else if (arg == "--kafka-broadcast-auto-offset-reset") {
+            if (!require_value(argc, argv, &i, &value) || value.empty()) {
+                return false;
+            }
+            config->kafka_broadcast.auto_offset_reset = value;
+        } else if (arg == "--kafka-broadcast-poll-timeout-ms") {
+            if (!require_value(argc, argv, &i, &value) ||
+                !parse_u32(
+                    value,
+                    &config->kafka_broadcast.poll_timeout_ms)) {
+                return false;
+            }
         } else if (arg == "--kcp-host") {
             if (!require_value(argc, argv, &i, &value)) {
                 return false;
@@ -837,6 +943,12 @@ int main(int argc, char** argv) {
     }
     config.kcp.max_peer_links = config.discovery.max_kcp_links;
     config.admission.max_kcp_links = config.discovery.max_kcp_links;
+    if (config.kafka_broadcast.brokers.empty()) {
+        config.kafka_broadcast.brokers = config.edge_data.kafka.brokers;
+    }
+    if (config.kafka_broadcast.topic.empty()) {
+        config.kafka_broadcast.topic = config.edge_data.kafka.topic;
+    }
 
     std::signal(SIGINT, handle_signal);
     std::signal(SIGTERM, handle_signal);
@@ -865,6 +977,10 @@ int main(int argc, char** argv) {
                   << " edge_config=" << redis_config_file
                   << " kafka_brokers=" << config.edge_data.kafka.brokers
                   << " kafka_topic=" << config.edge_data.kafka.topic
+                  << " kafka_broadcast="
+                  << (config.kafka_broadcast.enabled ? "enabled" : "disabled")
+                  << " kafka_broadcast_group="
+                  << config.kafka_broadcast.group_id
                   << " peer="
                   << iota_proxy::endpoint_to_string(
                          config.kcp.peer.endpoint

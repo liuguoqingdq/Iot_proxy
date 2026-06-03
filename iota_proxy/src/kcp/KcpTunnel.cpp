@@ -55,7 +55,8 @@ std::uint32_t load_u32(const char* src) noexcept {
 
 bool is_relayed_type(TunnelFrameType type) noexcept {
     return type == TunnelFrameType::Control ||
-           type == TunnelFrameType::Replicate;
+           type == TunnelFrameType::Replicate ||
+           type == TunnelFrameType::KafkaBroadcast;
 }
 
 std::string make_seen_key(TunnelFrameType type,
