@@ -39,7 +39,7 @@ Redis
 Kafka
 MySQL
 EMQX
-HDFS / WebHDFS
+MinIO
 ```
 
 如果只是进行本地快速测试，可以先启动：
@@ -51,7 +51,7 @@ MySQL
 EMQX
 ```
 
-HDFS和Iceberg写入服务可以后续再配置。
+MinIO和Iceberg写入服务可以后续再配置。
 
 ---
 
@@ -248,7 +248,7 @@ business_service/config/config.json
 storage_service/config/config.json
 ```
 
-如果Redis、Kafka、MySQL或HDFS不是部署在本机，需要修改这些配置文件中的地址。
+如果Redis、Kafka、MySQL或MinIO不是部署在本机，需要修改这些配置文件中的地址。
 
 ---
 
@@ -309,9 +309,9 @@ Ctrl+C
 
 ---
 
-### 10. 启动HDFS+Iceberg写入服务
+### 10. 启动MinIO+Iceberg写入服务
 
-如果已经配置好HDFS/WebHDFS，可以启动存储服务：
+如果已经配置好MinIO，可以启动存储服务：
 
 ```bash
 ./scripts/start_iceberg_ingest.sh
@@ -524,7 +524,7 @@ iota.edge.raw.v1
 iota.default.device_message
 ```
 
-不要直接扫描HDFS目录，这样可以利用Iceberg提供的快照一致性、分区裁剪和schema演进能力。
+不要直接扫描MinIO对象前缀，这样可以利用Iceberg提供的快照一致性、分区裁剪和schema演进能力。
 
 #### 定制存储策略
 
@@ -592,7 +592,7 @@ Redis
 Kafka
 MySQL
 EMQX
-HDFS / WebHDFS
+MinIO
 ```
 
 For a quick local test, you can start with:
@@ -604,7 +604,7 @@ MySQL
 EMQX
 ```
 
-HDFS and Iceberg ingestion can be enabled later.
+MinIO and Iceberg ingestion can be enabled later.
 
 ---
 
@@ -801,7 +801,7 @@ Storage service config:
 storage_service/config/config.json
 ```
 
-If Redis, Kafka, MySQL, or HDFS is not running on localhost, update the corresponding addresses in these config files.
+If Redis, Kafka, MySQL, or MinIO is not running on localhost, update the corresponding addresses in these config files.
 
 ---
 
@@ -862,9 +862,9 @@ Ctrl+C
 
 ---
 
-### 10. Start HDFS + Iceberg Ingestion
+### 10. Start MinIO + Iceberg Ingestion
 
-If HDFS/WebHDFS is ready, start the storage service:
+If MinIO is ready, start the storage service:
 
 ```bash
 ./scripts/start_iceberg_ingest.sh
@@ -1077,7 +1077,7 @@ Read from the Iceberg table:
 iota.default.device_message
 ```
 
-Avoid directly scanning HDFS directories so that the service can benefit from Iceberg snapshot consistency, partition pruning, and schema evolution.
+Avoid directly scanning MinIO object prefixes so that the service can benefit from Iceberg snapshot consistency, partition pruning, and schema evolution.
 
 #### Customize Storage Strategy
 

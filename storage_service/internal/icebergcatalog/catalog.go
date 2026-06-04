@@ -1,4 +1,4 @@
-package hadoopcatalog
+package icebergcatalog
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 	"github.com/apache/iceberg-go/table"
 	"github.com/google/uuid"
 
-	"iota/storage_service/internal/webhdfs"
+	"iota/storage_service/internal/s3store"
 )
 
 var metadataFileName = regexp.MustCompile(`^(\d+)-([\w-]{36})(?:\.\w+)?\.metadata\.json$`)
@@ -23,10 +23,10 @@ var metadataFileName = regexp.MustCompile(`^(\d+)-([\w-]{36})(?:\.\w+)?\.metadat
 type Catalog struct {
 	identifier    table.Identifier
 	tableLocation string
-	client        *webhdfs.Client
+	client        *s3store.Client
 }
 
-func New(identifier table.Identifier, tableLocation string, client *webhdfs.Client) *Catalog {
+func New(identifier table.Identifier, tableLocation string, client *s3store.Client) *Catalog {
 	return &Catalog{
 		identifier:    identifier,
 		tableLocation: strings.TrimRight(tableLocation, "/"),
@@ -40,7 +40,7 @@ func (c *Catalog) LoadTable(ctx context.Context, identifier table.Identifier) (*
 	}
 	loc, err := c.currentMetadataLocation(ctx)
 	if err != nil {
-		if webhdfs.IsNotExist(err) {
+		if s3store.IsNotExist(err) {
 			return nil, catalog.ErrNoSuchTable
 		}
 		return nil, err
@@ -111,7 +111,7 @@ func (c *Catalog) CreateOrLoadTable(ctx context.Context, schema *iceberg.Schema,
 
 func (c *Catalog) fsFactory() table.FSysF {
 	return func(ctx context.Context) (iceio.IO, error) {
-		return webhdfs.NewFileSystem(ctx, c.client), nil
+		return s3store.NewFileSystem(ctx, c.client), nil
 	}
 }
 
@@ -120,11 +120,11 @@ func (c *Catalog) writeMetadata(ctx context.Context, meta table.Metadata, locati
 	if err != nil {
 		return err
 	}
-	fs := webhdfs.NewFileSystem(ctx, c.client)
+	fs := s3store.NewFileSystem(ctx, c.client)
 	if err := fs.WriteFile(location, append(data, '\n')); err != nil {
 		return err
 	}
-	return c.client.WriteFile(ctx, c.versionHintPath(), []byte(strconv.Itoa(version)+"\n"), true)
+	return c.client.WriteFile(ctx, c.versionHintPath(), []byte(strconv.Itoa(version)+"\n"))
 }
 
 func (c *Catalog) currentMetadataLocation(ctx context.Context) (string, error) {

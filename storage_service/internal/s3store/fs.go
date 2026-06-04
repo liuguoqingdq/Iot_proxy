@@ -1,4 +1,4 @@
-package webhdfs
+package s3store
 
 import (
 	"bytes"
@@ -27,7 +27,7 @@ func (f *FileSystem) Open(name string) (iceio.File, error) {
 		return nil, err
 	}
 	return &memoryFile{
-		name:   path.Base(hdfsPath(name)),
+		name:   path.Base(objectKey(name)),
 		reader: bytes.NewReader(data),
 		size:   int64(len(data)),
 	}, nil
@@ -38,11 +38,11 @@ func (f *FileSystem) ReadFile(name string) ([]byte, error) {
 }
 
 func (f *FileSystem) Remove(name string) error {
-	return f.client.Delete(f.ctx, name, false)
+	return f.client.Delete(f.ctx, name)
 }
 
 func (f *FileSystem) Create(name string) (iceio.FileWriter, error) {
-	tmp, err := os.CreateTemp("", "iota-webhdfs-*")
+	tmp, err := os.CreateTemp("", "iota-minio-*")
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func (f *FileSystem) Create(name string) (iceio.FileWriter, error) {
 }
 
 func (f *FileSystem) WriteFile(name string, p []byte) error {
-	return f.client.WriteFile(f.ctx, name, p, true)
+	return f.client.WriteFile(f.ctx, name, p)
 }
 
 type memoryFile struct {
@@ -126,5 +126,5 @@ func (w *fileWriter) Close() error {
 	if err != nil {
 		return err
 	}
-	return w.client.Write(w.ctx, w.name, in, stat.Size(), false)
+	return w.client.Write(w.ctx, w.name, in, stat.Size())
 }

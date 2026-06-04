@@ -101,20 +101,24 @@ Kafka consumer 配置：
 
 `business_service` 现在从 Kafka consumer group 拉取消息，只 upsert `proxy_served_device`，成功后提交 offset。
 
-## HDFS + Iceberg
+## MinIO + Iceberg
 
-设备明细数据由独立的 `storage_service` 从同一个 Kafka topic 拉取，按微批聚合成 HDFS 上的 Parquet 数据文件。Iceberg 表只负责组织这些文件的 metadata、manifest、snapshot 和分区信息，方便其他服务端按表查询。配置在 `../storage_service/config/config.json`：
+设备明细数据由独立的 `storage_service` 从同一个 Kafka topic 拉取，按微批聚合成 MinIO 上的 Parquet 对象。Iceberg 表只负责组织这些文件的 metadata、manifest、snapshot 和分区信息，方便其他服务端按表查询。配置在 `../storage_service/config/config.json`：
 
 ```json
 {
-  "webhdfs": {
-    "endpoint": "http://127.0.0.1:9870/webhdfs/v1",
-    "user": "iota"
+  "minio": {
+    "endpoint": "http://127.0.0.1:9000",
+    "region": "us-east-1",
+    "access_key_id": "minioadmin",
+    "secret_access_key": "minioadmin",
+    "bucket": "iota",
+    "use_path_style": true
   },
   "iceberg": {
     "namespace": "default",
     "table": "device_message",
-    "warehouse": "hdfs:///warehouse/iota"
+    "warehouse": "s3://iota/warehouse/iota"
   },
   "writer": {
     "batch_max_messages": 50000,

@@ -15,7 +15,7 @@ const (
 
 type Config struct {
 	Kafka   KafkaConfig   `json:"kafka"`
-	WebHDFS WebHDFSConfig `json:"webhdfs"`
+	MinIO   MinIOConfig   `json:"minio"`
 	Iceberg IcebergConfig `json:"iceberg"`
 	Writer  WriterConfig  `json:"writer"`
 }
@@ -29,9 +29,13 @@ type KafkaConfig struct {
 	MaxWaitMS int      `json:"max_wait_ms"`
 }
 
-type WebHDFSConfig struct {
-	Endpoint string `json:"endpoint"`
-	User     string `json:"user"`
+type MinIOConfig struct {
+	Endpoint        string `json:"endpoint"`
+	Region          string `json:"region"`
+	AccessKeyID     string `json:"access_key_id"`
+	SecretAccessKey string `json:"secret_access_key"`
+	Bucket          string `json:"bucket"`
+	UsePathStyle    bool   `json:"use_path_style"`
 }
 
 type IcebergConfig struct {
@@ -97,8 +101,26 @@ func (cfg *Config) setDefaults() {
 	if cfg.Iceberg.Table == "" {
 		cfg.Iceberg.Table = "device_message"
 	}
+	if cfg.MinIO.Endpoint == "" {
+		cfg.MinIO.Endpoint = "http://127.0.0.1:9000"
+	}
+	if cfg.MinIO.Region == "" {
+		cfg.MinIO.Region = "us-east-1"
+	}
+	if cfg.MinIO.Bucket == "" {
+		cfg.MinIO.Bucket = "iota"
+	}
+	if cfg.MinIO.AccessKeyID == "" {
+		cfg.MinIO.AccessKeyID = "minioadmin"
+	}
+	if cfg.MinIO.SecretAccessKey == "" {
+		cfg.MinIO.SecretAccessKey = "minioadmin"
+	}
+	if !cfg.MinIO.UsePathStyle {
+		cfg.MinIO.UsePathStyle = true
+	}
 	if cfg.Iceberg.Warehouse == "" {
-		cfg.Iceberg.Warehouse = "hdfs:///warehouse/iota"
+		cfg.Iceberg.Warehouse = "s3://iota/warehouse/iota"
 	}
 	if cfg.Iceberg.TableLocation == "" {
 		cfg.Iceberg.TableLocation = strings.TrimRight(cfg.Iceberg.Warehouse, "/") + "/" + cfg.Iceberg.Namespace + "/" + cfg.Iceberg.Table
@@ -118,14 +140,20 @@ func (cfg *Config) setDefaults() {
 }
 
 func (cfg *Config) validate() error {
-	if cfg.WebHDFS.Endpoint == "" {
-		return fmt.Errorf("webhdfs.endpoint is required")
+	if cfg.MinIO.Endpoint == "" {
+		return fmt.Errorf("minio.endpoint is required")
 	}
-	if _, err := url.Parse(cfg.WebHDFS.Endpoint); err != nil {
-		return fmt.Errorf("invalid webhdfs.endpoint: %w", err)
+	if _, err := url.Parse(cfg.MinIO.Endpoint); err != nil {
+		return fmt.Errorf("invalid minio.endpoint: %w", err)
 	}
-	if cfg.WebHDFS.User == "" {
-		return fmt.Errorf("webhdfs.user is required")
+	if cfg.MinIO.Bucket == "" {
+		return fmt.Errorf("minio.bucket is required")
+	}
+	if cfg.MinIO.AccessKeyID == "" {
+		return fmt.Errorf("minio.access_key_id is required")
+	}
+	if cfg.MinIO.SecretAccessKey == "" {
+		return fmt.Errorf("minio.secret_access_key is required")
 	}
 	if cfg.Iceberg.TableLocation == "" {
 		return fmt.Errorf("iceberg table location is required")

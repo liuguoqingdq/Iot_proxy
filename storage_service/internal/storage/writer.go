@@ -10,12 +10,12 @@ import (
 	"github.com/apache/iceberg-go"
 	"github.com/apache/iceberg-go/table"
 
-	"iota/storage_service/internal/hadoopcatalog"
-	"iota/storage_service/internal/webhdfs"
+	"iota/storage_service/internal/icebergcatalog"
+	"iota/storage_service/internal/s3store"
 )
 
 type IcebergWriter struct {
-	catalog    *hadoopcatalog.Catalog
+	catalog    *icebergcatalog.Catalog
 	identifier table.Identifier
 	props      iceberg.Properties
 }
@@ -25,9 +25,16 @@ func NewIcebergWriter(cfg *Config) (*IcebergWriter, error) {
 		return nil, fmt.Errorf("config is required")
 	}
 
-	client, err := webhdfs.NewClient(cfg.WebHDFS.Endpoint, cfg.WebHDFS.User)
+	client, err := s3store.NewClient(s3store.Config{
+		Endpoint:        cfg.MinIO.Endpoint,
+		Region:          cfg.MinIO.Region,
+		AccessKeyID:     cfg.MinIO.AccessKeyID,
+		SecretAccessKey: cfg.MinIO.SecretAccessKey,
+		Bucket:          cfg.MinIO.Bucket,
+		UsePathStyle:    cfg.MinIO.UsePathStyle,
+	})
 	if err != nil {
-		return nil, fmt.Errorf("create webhdfs client: %w", err)
+		return nil, fmt.Errorf("create minio client: %w", err)
 	}
 
 	identifier := table.Identifier{cfg.Iceberg.Namespace, cfg.Iceberg.Table}
@@ -38,7 +45,7 @@ func NewIcebergWriter(cfg *Config) (*IcebergWriter, error) {
 	}
 
 	return &IcebergWriter{
-		catalog:    hadoopcatalog.New(identifier, cfg.Iceberg.TableLocation, client),
+		catalog:    icebergcatalog.New(identifier, cfg.Iceberg.TableLocation, client),
 		identifier: identifier,
 		props:      props,
 	}, nil

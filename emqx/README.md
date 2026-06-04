@@ -5,7 +5,7 @@
 ```text
 IoT device -> EMQX -> Kafka topic iota.edge.raw.v1
   -> business_service -> MySQL proxy_served_device
-  -> storage_service -> HDFS Parquet data files + Iceberg metadata
+  -> storage_service -> MinIO Parquet objects + Iceberg metadata
 ```
 
 `iota_proxy` 不再负责设备 TCP 接入，可用 `--disable-tcp-ingress` 只保留节点 discovery/KCP 等服务器间职责。
@@ -55,7 +55,7 @@ iota/{node_id}/devices/{mac}/telemetry
 iota/node-a/devices/aabbccddeeff/telemetry
 ```
 
-`business_service` 会从 topic 中提取 `{mac}`，只写入 MySQL 的 `proxy_served_device`。`mac + timestamp + payload` 明细由 `storage_service` 从 Kafka 聚合成 HDFS Parquet 数据文件，并通过 `device_message` Iceberg 表组织文件元数据。
+`business_service` 会从 topic 中提取 `{mac}`，只写入 MySQL 的 `proxy_served_device`。`mac + timestamp + payload` 明细由 `storage_service` 从 Kafka 聚合成 MinIO Parquet 对象，并通过 `device_message` Iceberg 表组织文件元数据。
 
 ## EMQX Rule SQL
 

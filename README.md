@@ -11,7 +11,7 @@
 
 ### 项目简介
 
-`Iot_proxy`是一个去中心化的分布式IoT设备数据采集服务。项目面向大量边缘设备接入场景，设备通过MQTT协议连接到服务器并上传遥测数据，服务端将数据写入Kafka数据管道，再由独立的业务服务和存储服务完成设备状态维护、HDFS落盘和Iceberg元数据组织。
+`Iot_proxy`是一个去中心化的分布式IoT设备数据采集服务。项目面向大量边缘设备接入场景，设备通过MQTT协议连接到服务器并上传遥测数据，服务端将数据写入Kafka数据管道，再由独立的业务服务和存储服务完成设备状态维护、MinIO落盘和Iceberg元数据组织。
 
 项目的核心目标不是让每个节点都保存完整的全局数据，而是让每个节点在自身资源约束下尽可能多地采集、转发和沉淀数据。不同节点可以根据实际设备规模、网络条件和存储资源调整配置，例如存储容量、KCP连接数量、入口连接数量和入站速率限制等，从而形成一个可弹性扩展的分布式数据采集网络。
 
@@ -25,8 +25,8 @@
 * **Kafka数据总线**
   设备数据统一写入Kafka topic，业务服务和存储服务通过不同consumer group独立消费，避免采集、业务处理和存储逻辑强耦合。
 
-* **HDFS+Iceberg存储组织**
-  存储服务将Kafka中的设备消息按微批聚合为Parquet文件写入HDFS，并使用Iceberg表管理元数据、manifest、snapshot和分区信息。
+* **MinIO+Iceberg存储组织**
+  存储服务将Kafka中的设备消息按微批聚合为Parquet文件写入MinIO，并使用Iceberg表管理元数据、manifest、snapshot和分区信息。
 
 * **去中心化节点发现与路由**
   节点发现与地址管理思想借鉴Bitcoin Core addrman机制，节点之间通过bootstrap节点、路由表、能力广播和feeler探测维护可用节点集合。
@@ -65,7 +65,7 @@ iota_proxy                      business_service               storage_service
 Kafka broadcast source           |                              |
   |                              | upsert device state           | micro-batch write
   v                              v                              v
-KCP peer network                 MySQL: proxy_served_device     HDFS Parquet files
+KCP peer network                 MySQL: proxy_served_device     MinIO Parquet objects
                                                                 +
                                                                 Iceberg table metadata
 ```
@@ -90,9 +90,9 @@ Cross-node forwarding / replication
 | ------------------ | ---------- | --------------------------------------------------- |
 | `iota_proxy`       | C++17      | 分布式代理节点，负责节点发现、KCP连接、路由管理、兼容TCP入口、Redis状态缓存和Kafka写入 |
 | `business_service` | Go         | Kafka消费者，维护设备服务记录，将设备最近一次上报时间写入MySQL                |
-| `storage_service`  | Go         | Kafka消费者，将设备消息聚合为Parquet文件写入HDFS，并通过Iceberg组织元数据    |
+| `storage_service`  | Go         | Kafka消费者，将设备消息聚合为Parquet文件写入MinIO，并通过Iceberg组织元数据  |
 | `emqx`             | SQL/JSON配置 | MQTT到Kafka的规则、Kafka Sink模板和测试说明                     |
-| `scripts`          | Bash       | 一键构建、启动代理服务、启动HDFS/Iceberg写入服务                      |
+| `scripts`          | Bash       | 一键构建、启动代理服务、启动MinIO/Iceberg写入服务                    |
 
 ---
 
@@ -151,9 +151,9 @@ timestamp = 最近一次收到该设备消息的时间戳
 
 设备明细数据不直接写入MySQL，避免高频数据写入给关系型数据库造成过大压力。
 
-#### 3. 存储服务写入HDFS
+#### 3. 存储服务写入MinIO
 
-`storage_service`使用独立consumer group消费同一个Kafka topic，将消息按批次写成Parquet文件，并通过WebHDFS写入HDFS。
+`storage_service`使用独立consumer group消费同一个Kafka topic，将消息按批次写成Parquet文件，并通过S3兼容接口写入MinIO。
 
 默认Iceberg表：
 
@@ -161,14 +161,14 @@ timestamp = 最近一次收到该设备消息的时间戳
 iota.default.device_message
 ```
 
-默认HDFS路径示例：
+默认MinIO对象路径示例：
 
 ```text
-hdfs:///warehouse/iota/default/device_message/data
-hdfs:///warehouse/iota/default/device_message/metadata
+s3://iota/warehouse/iota/default/device_message/data
+s3://iota/warehouse/iota/default/device_message/metadata
 ```
 
-二次开发的查询服务、分析服务或告警服务建议通过Iceberg catalog/table读取数据，而不是直接扫描HDFS目录。这样可以获得快照一致性、分区裁剪和schema演进能力。
+二次开发的查询服务、分析服务或告警服务建议通过Iceberg catalog/table读取数据，而不是直接扫描MinIO对象前缀。这样可以获得快照一致性、分区裁剪和schema演进能力。
 
 ---
 
@@ -233,7 +233,7 @@ KCP连接是否达到上限
 * 节点自治：每个节点可以独立配置接入、存储和转发能力；
 * 弹性采集：节点根据自身资源决定能够承载多少设备数据；
 * 弱全局依赖：不依赖单一中心节点维护所有设备状态；
-* 数据管道解耦：MQTT、Kafka、MySQL、HDFS和Iceberg各自承担不同职责；
+* 数据管道解耦：MQTT、Kafka、MySQL、MinIO和Iceberg各自承担不同职责；
 * 可扩展开发：后续可以在Kafka和Iceberg之上继续开发统计、告警、清洗、画像和分析服务。
 
 ---
@@ -303,7 +303,7 @@ storage_service/config/config.json
 export IOTA_STORAGE_CONFIG=/path/to/config.json
 ```
 
-关键配置包括Kafka、WebHDFS、Iceberg表位置和批量写入阈值。
+关键配置包括Kafka、MinIO、Iceberg表位置和批量写入阈值。
 
 ---
 
@@ -374,7 +374,7 @@ Redis
 Kafka
 MySQL
 EMQX
-HDFS / WebHDFS
+MinIO
 ```
 
 并确认Kafka中已经创建topic：
@@ -397,7 +397,7 @@ iota_proxy KCP监听9000端口
 business_service持续消费Kafka并写入MySQL设备服务记录
 ```
 
-启动HDFS+Iceberg写入服务：
+启动MinIO+Iceberg写入服务：
 
 ```bash
 ./scripts/start_iceberg_ingest.sh
@@ -457,7 +457,7 @@ mqttx pub -h 127.0.0.1 -p 1883 \
 微批大小
 flush间隔
 目标Parquet文件大小
-HDFS warehouse路径
+MinIO warehouse前缀
 Iceberg namespace/table
 ```
 
@@ -495,7 +495,7 @@ Iceberg namespace/table
 
 ### Overview
 
-`Iot_proxy` is a decentralized distributed IoT data collection service. It is designed for large-scale edge-device scenarios where IoT devices publish telemetry data through MQTT, the server side forwards messages into Kafka, and independent services process device states and persist raw data into HDFS with Iceberg metadata.
+`Iot_proxy` is a decentralized distributed IoT data collection service. It is designed for large-scale edge-device scenarios where IoT devices publish telemetry data through MQTT, the server side forwards messages into Kafka, and independent services process device states and persist raw data into MinIO with Iceberg metadata.
 
 The core goal of this project is not to force every node to store complete global data. Instead, each node collects and retains as much data as possible within its own resource constraints. Different nodes can tune their storage capacity, KCP peer link limits, ingress stream limits, and ingress bandwidth limits according to real deployment conditions.
 
@@ -509,8 +509,8 @@ The core goal of this project is not to force every node to store complete globa
 * **Kafka-based data pipeline**
   Device messages are written into a shared Kafka topic. Business and storage services consume the same topic with different consumer groups.
 
-* **HDFS + Iceberg storage**
-  The storage service writes micro-batched Parquet files into HDFS and manages metadata through an Iceberg table.
+* **MinIO + Iceberg storage**
+  The storage service writes micro-batched Parquet files into MinIO and manages metadata through an Iceberg table.
 
 * **Decentralized node discovery and routing**
   The discovery and route management design is inspired by Bitcoin Core addrman. Nodes discover peers, exchange routes, broadcast capabilities, and maintain local route tables.
@@ -549,7 +549,7 @@ iota_proxy                      business_service               storage_service
 Kafka broadcast source           |                              |
   |                              | upsert device state           | micro-batch write
   v                              v                              v
-KCP peer network                 MySQL: proxy_served_device     HDFS Parquet files
+KCP peer network                 MySQL: proxy_served_device     MinIO Parquet objects
                                                                 +
                                                                 Iceberg table metadata
 ```
@@ -574,7 +574,7 @@ A legacy TCP ingress path is still kept for compatibility. For MQTT-first deploy
 | ------------------ | --------------- | -------------------------------------------------------------------------------------------------------------- |
 | `iota_proxy`       | C++17           | Proxy node, discovery, KCP peer links, route management, legacy TCP ingress, Redis state cache, Kafka producer |
 | `business_service` | Go              | Kafka consumer that maintains device service records in MySQL                                                  |
-| `storage_service`  | Go              | Kafka consumer that writes Parquet files into HDFS and organizes metadata through Iceberg                      |
+| `storage_service`  | Go              | Kafka consumer that writes Parquet files into MinIO and organizes metadata through Iceberg                     |
 | `emqx`             | SQL/JSON config | MQTT-to-Kafka rule and Kafka Sink template                                                                     |
 | `scripts`          | Bash            | Build and startup scripts                                                                                      |
 
@@ -637,7 +637,7 @@ Raw device detail data is not directly written into MySQL.
 
 #### 3. Storage Service
 
-`storage_service` consumes the same Kafka topic with another consumer group, aggregates messages into micro-batches, writes Parquet files to HDFS through WebHDFS, and registers metadata in an Iceberg table.
+`storage_service` consumes the same Kafka topic with another consumer group, aggregates messages into micro-batches, writes Parquet files to MinIO through the S3-compatible API, and registers metadata in an Iceberg table.
 
 Default Iceberg table:
 
@@ -645,14 +645,14 @@ Default Iceberg table:
 iota.default.device_message
 ```
 
-Default HDFS paths:
+Default MinIO object paths:
 
 ```text
-hdfs:///warehouse/iota/default/device_message/data
-hdfs:///warehouse/iota/default/device_message/metadata
+s3://iota/warehouse/iota/default/device_message/data
+s3://iota/warehouse/iota/default/device_message/metadata
 ```
 
-Custom query or analytics services should read through the Iceberg catalog/table instead of directly scanning HDFS directories.
+Custom query or analytics services should read through the Iceberg catalog/table instead of directly scanning MinIO object prefixes.
 
 ---
 
@@ -785,7 +785,7 @@ Redis
 Kafka
 MySQL
 EMQX
-HDFS / WebHDFS
+MinIO
 ```
 
 Start proxy and business services:
@@ -794,7 +794,7 @@ Start proxy and business services:
 ./scripts/start_all.sh
 ```
 
-Start HDFS + Iceberg ingestion service:
+Start MinIO + Iceberg ingestion service:
 
 ```bash
 ./scripts/start_iceberg_ingest.sh
@@ -842,7 +842,7 @@ Possible extension directions include:
 
 ### Project Positioning
 
-`Iot_proxy` is a distributed IoT data collection foundation rather than a single-purpose analytics application. It focuses on device ingestion, decentralized node discovery, KCP-based peer networking, Kafka-based data pipelines, HDFS/Iceberg persistence, and extensibility for custom services.
+`Iot_proxy` is a distributed IoT data collection foundation rather than a single-purpose analytics application. It focuses on device ingestion, decentralized node discovery, KCP-based peer networking, Kafka-based data pipelines, MinIO/Iceberg persistence, and extensibility for custom services.
 
 -----
 ## 文档索引
