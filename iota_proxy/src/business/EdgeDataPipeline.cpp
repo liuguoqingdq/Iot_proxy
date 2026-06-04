@@ -42,6 +42,31 @@ bool EdgeDataPipeline::write_edge_data(std::uint64_t stream_id,
     return kafka_.produce(message.mac_hex, serialized);
 }
 
+bool EdgeDataPipeline::record_kafka_message(
+    ByteView payload,
+    const BroadcastMetadata& metadata,
+    bool* duplicate) {
+    if (duplicate != nullptr) {
+        *duplicate = false;
+    }
+    if (payload.empty()) {
+        return true;
+    }
+
+    EdgeDataMessage message;
+    if (!parse_edge_kafka_message_json(payload, metadata, &message)) {
+        std::cerr << "edge pipeline: invalid kafka broadcast message\n";
+        return false;
+    }
+
+    const std::string serialized(payload.data(), payload.size());
+    if (!redis_.record_edge_message(message, serialized, duplicate)) {
+        std::cerr << "edge pipeline: failed to record kafka broadcast message\n";
+        return false;
+    }
+    return true;
+}
+
 void EdgeDataPipeline::stop() {
     kafka_.stop();
     redis_.stop();

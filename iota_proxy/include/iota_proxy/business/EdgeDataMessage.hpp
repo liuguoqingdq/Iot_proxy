@@ -25,6 +25,9 @@ bool make_edge_data_message(std::uint64_t stream_id,
                             ByteView frame,
                             const BroadcastMetadata& metadata,
                             EdgeDataMessage* out);
+bool parse_edge_kafka_message_json(ByteView payload,
+                                   const BroadcastMetadata& metadata,
+                                   EdgeDataMessage* out);
 std::string serialize_edge_data_message_json(const EdgeDataMessage& message);
 
 }  // namespace iota_proxy

@@ -141,10 +141,15 @@ void KafkaBroadcastSource::run() {
             continue;
         }
 
+        bool processed = true;
         if (message->payload != nullptr && message->len > 0) {
             const char* payload =
                 static_cast<const char*>(message->payload);
-            sender_(ByteView(payload, message->len));
+            processed = sender_(ByteView(payload, message->len)) != 0;
+        }
+        if (!processed) {
+            rd_kafka_message_destroy(message);
+            continue;
         }
 
         const rd_kafka_resp_err_t commit_err =

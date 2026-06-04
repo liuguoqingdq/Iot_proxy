@@ -21,6 +21,9 @@ public:
     bool write_edge_data(std::uint64_t stream_id,
                          ByteView payload,
                          const BroadcastMetadata& metadata = {});
+    bool record_kafka_message(ByteView payload,
+                              const BroadcastMetadata& metadata,
+                              bool* duplicate);
     void stop();
 
 private:

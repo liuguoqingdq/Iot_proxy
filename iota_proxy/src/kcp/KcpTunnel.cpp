@@ -59,6 +59,11 @@ bool is_relayed_type(TunnelFrameType type) noexcept {
            type == TunnelFrameType::KafkaBroadcast;
 }
 
+bool auto_relay_type(TunnelFrameType type) noexcept {
+    return type == TunnelFrameType::Control ||
+           type == TunnelFrameType::Replicate;
+}
+
 std::string make_seen_key(TunnelFrameType type,
                           std::uint64_t stream_id,
                           const myring::kcp::KcpConv& origin,
@@ -393,17 +398,24 @@ std::size_t KcpTunnel::broadcast_frame(TunnelFrameType type,
     myring::kcp::KcpConv message_id;
     if (is_relayed_type(type) && !config_.identity.id.empty()) {
         myring::kcp::KcpConv origin = config_.identity.id;
+        std::uint8_t ttl = config_.broadcast_ttl;
         if (metadata != nullptr && metadata->valid &&
             !metadata->origin.empty() && !metadata->message_id.empty()) {
             origin = metadata->origin;
             message_id = metadata->message_id;
+            if (metadata->ttl != 0) {
+                if (metadata->ttl <= 1) {
+                    return 0;
+                }
+                ttl = static_cast<std::uint8_t>(metadata->ttl - 1);
+            }
         } else if (!make_random_message_id(&message_id)) {
             return 0;
         }
         envelope = encode_broadcast_envelope(
             origin,
             message_id,
-            config_.broadcast_ttl,
+            ttl,
             payload
         );
         if (envelope.empty()) {
@@ -501,7 +513,7 @@ bool KcpTunnel::prepare_inbound_broadcast(
         return false;
     }
 
-    if (envelope.ttl > 1) {
+    if (auto_relay_type(type) && envelope.ttl > 1) {
         const std::uint8_t next_ttl =
             static_cast<std::uint8_t>(envelope.ttl - 1);
         const std::string relay_payload = encode_broadcast_envelope(
@@ -525,6 +537,7 @@ bool KcpTunnel::prepare_inbound_broadcast(
     decoded_payload->assign(envelope.payload.data(), envelope.payload.size());
     *decoded = true;
     metadata->valid = true;
+    metadata->ttl = envelope.ttl;
     metadata->origin = envelope.origin;
     metadata->message_id = envelope.message_id;
     return true;

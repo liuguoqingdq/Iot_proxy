@@ -21,6 +21,7 @@ enum class TunnelFrameType : std::uint8_t {
 
 struct BroadcastMetadata {
     bool valid = false;
+    std::uint8_t ttl = 0;
     myring::kcp::KcpConv origin;
     myring::kcp::KcpConv message_id;
 };

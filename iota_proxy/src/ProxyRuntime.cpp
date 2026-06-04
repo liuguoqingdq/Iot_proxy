@@ -122,6 +122,23 @@ ProxyRuntime::ProxyRuntime(const ProxyRuntimeConfig& config)
             if (!admission_.try_accept_ingress_bytes(frame.payload.size())) {
                 return;
             }
+            if (frame.type == TunnelFrameType::KafkaBroadcast) {
+                bool duplicate = false;
+                if (!edge_data_.record_kafka_message(
+                        frame.payload,
+                        frame.broadcast,
+                        &duplicate)) {
+                    return;
+                }
+                if (!duplicate) {
+                    kcp_.broadcast_frame(
+                        TunnelFrameType::KafkaBroadcast,
+                        frame.stream_id,
+                        frame.payload,
+                        &frame.broadcast);
+                }
+                return;
+            }
             business_.on_kcp_frame(frame);
         }
     );
@@ -160,6 +177,16 @@ ProxyRuntime::ProxyRuntime(const ProxyRuntimeConfig& config)
     );
     kafka_broadcast_.set_sender(
         [this](ByteView payload) {
+            bool duplicate = false;
+            if (!edge_data_.record_kafka_message(
+                    payload,
+                    BroadcastMetadata(),
+                    &duplicate)) {
+                return static_cast<std::size_t>(0);
+            }
+            if (duplicate) {
+                return static_cast<std::size_t>(1);
+            }
             return kcp_.broadcast_frame(
                 TunnelFrameType::KafkaBroadcast,
                 1,
